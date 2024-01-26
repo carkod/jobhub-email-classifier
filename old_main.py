@@ -1,3 +1,6 @@
+# Old code left for testing
+
+
 import os
 import asyncio
 import pandas as pd
@@ -80,13 +83,17 @@ def setup_ntlk():
 def language_processing(content):
     # Remove zero-width characters
     content = content.strip(' ͏')
+    original_content = content
     text = content.encode()
     text = text.decode()
+    tokens = sent_tokenize(text)
     words_in_quote = word_tokenize(text)
     eng_stop_words = set(stopwords.words("english"))
     filtered_list = [word for word in words_in_quote if (word.casefold() not in eng_stop_words) and (word.isalnum())]
     stemmer = EnglishStemmer()
     lemmatizer = WordNetLemmatizer()
+    # filtered_list = [stemmer.stem(word) for word in filtered_list]
+    # filtered_list = [lemmatizer.lemmatize(word) for word in filtered_list]
     recruitment_tags = nltk.pos_tag(words_in_quote)
 
     # e.g. Your application was successful, you applied successfully, your application was received
@@ -104,9 +111,22 @@ def language_processing(content):
             for word in chunk.leaves():
                 if stemmer.stem(word[0]) in first_stage:
                     classification = "Applied"
-                    return classification
+                    return filtered_list, classification, original_content
     
-    return classification
+    # for word in filtered_list:
+    #     if stemmer.stem(word) in recruitment_vocab:
+    #         classification = "Applied"
+    #         if stemmer.stem(word) in second_stage_phrases:
+    #             classification = "In progress"
+    #             return filtered_list, classification
+    
+    #     if lemmatizer.lemmatize(word) in recruitment_vocab:
+    #         classification = "Applied"
+    #         if lemmatizer.lemmatize(word) in second_stage_phrases:
+    #             classification = "In progress"
+    #             return filtered_list, classification
+
+    return filtered_list, classification, original_content
 
 
 async def run_classification():
