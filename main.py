@@ -31,6 +31,7 @@ load_dotenv()
 # generate credentials at https://console.cloud.google.com/apis/credentials?project=smart-bonus-340819
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
+first_stage = ["softwar", "applic", "appli"]
 recruitment_vocab = ["interview", "softwar", "applic", "appli"]
 second_stage_phrases = ["senior", "invite", "technical interview", "calendar"]
 
@@ -90,27 +91,37 @@ def language_processing(content):
     lemmatizer = WordNetLemmatizer()
     # filtered_list = [stemmer.stem(word) for word in filtered_list]
     # filtered_list = [lemmatizer.lemmatize(word) for word in filtered_list]
-    recruitment_tags = nltk.pos_tag(filtered_list)
+    recruitment_tags = nltk.pos_tag(words_in_quote)
 
     # e.g. Your application was successful, you applied successfully, your application was received
     # PRP -> RB -> VBD -> NN
-    application_phrase_structure = "NP: {<PRP>?<RB|NN><NN>*}"
-    chunk_parser = nltk.RegexpParser(application_phrase_structure)
+    chunk_patterns = r"""
+        NP: {<DT>?<JJ>*<NN>}  # Chunk noun phrases
+        VP: {<VB.*><NP|PP>}  # Chunk verb phrases
+    """
+    chunk_parser = nltk.RegexpParser(chunk_patterns)
     tree = chunk_parser.parse(recruitment_tags)
     classification = None
+
+    for chunk in tree:
+        if isinstance(chunk, nltk.tree.Tree):
+            for word in chunk.leaves():
+                if stemmer.stem(word[0]) in first_stage:
+                    classification = "Applied"
+                    return filtered_list, classification, original_content
     
-    for word in filtered_list:
-        if stemmer.stem(word) in recruitment_vocab:
-            classification = "Applied"
-            if stemmer.stem(word) in second_stage_phrases:
-                classification = "In progress"
-                return filtered_list, classification
+    # for word in filtered_list:
+    #     if stemmer.stem(word) in recruitment_vocab:
+    #         classification = "Applied"
+    #         if stemmer.stem(word) in second_stage_phrases:
+    #             classification = "In progress"
+    #             return filtered_list, classification
     
-        if lemmatizer.lemmatize(word) in recruitment_vocab:
-            classification = "Applied"
-            if lemmatizer.lemmatize(word) in second_stage_phrases:
-                classification = "In progress"
-                return filtered_list, classification
+    #     if lemmatizer.lemmatize(word) in recruitment_vocab:
+    #         classification = "Applied"
+    #         if lemmatizer.lemmatize(word) in second_stage_phrases:
+    #             classification = "In progress"
+    #             return filtered_list, classification
 
     return filtered_list, classification, original_content
 
